@@ -74,7 +74,12 @@ The structure of a data packet is:
 |:------------|:--------|:--------------|:------------------------------------|
 | 1 byte      | 1 byte  | 2 bytes       | the rest of the bytes in the packet |
 
-:bangbang: Note that you'll need to look at the length field in the received packet to figure out how many bytes are in "the rest of the bytes in the package". Most of the received packets will probably be "full", but the last packet is likely to be "short".
+:bangbang: Note that you'll need to look at the length field in the received
+packet to figure out how many bytes are in "the rest of the bytes in the
+package". Most of the received packets will probably be "full", but the last
+packet is likely to be "short". You may assume that the maximum packet size,
+however, is 1028 bytes (a data packet with 4 bytes of bookkeeping and 1024
+bytes of data).
 
 The decision to only use 1 byte for the file ID means that there can't be more than 256 files being transferred to a given client at a time. Given that the current business plan is to always send exactly three files that shouldn't be a problem, but they'll need to be aware of the limitation if they want to expand the service later.
 
