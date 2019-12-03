@@ -11,6 +11,7 @@ The starter code and (limited) tests for the client code for the Segmented File 
 - [Testing](#testing)
   - [Unit test your work](#unit-test-your-work)
   - [Check your work by running your client by hand](#check-your-work-by-running-your-client-by-hand)
+  - [Check your work using `bats` tests](#check-your-work-using-bats-tests)
 
 ## Background
 
@@ -20,7 +21,7 @@ In a rare fit of sanity, they've brought you in to help them out by building the
 
 *This is one of the more time-consuming labs, so prepare and plan accordingly.*
 
-This starter code comes with some simple Aruba/Cucumber tests, but as discussed below you'll almost certainly want to add additional JUnit tests of your own to test the design and implementation of your data management tools.
+This starter code comes with some simple `bats` tests, but as discussed below you'll almost certainly want to add additional JUnit tests of your own to test the design and implementation of your data management tools.
 
 ## Segmenting the files
 
@@ -122,21 +123,41 @@ While the network stuff is difficult to test, all the parsing and packet/file as
 
 All of these ideas are just that: ideas. Your group should definitely spend some time discussing how you want to organize all this, and how you want to test that. If you're not clear on how you'd structure something for testing, *come ask* rather than just banging out a bunch of code that will just confuse us all later.
 
-**If you've written reasonable unit tests for your data structures and they pass, you'll get partial credit even if the whole client is not correct**
+**If you've written reasonable unit tests for your data structures and they pass, you'll get partial credit even if the whole client is not correct.**
 
 ### Check your work by running your client by hand
 
 In addition to your unit tests, you can run your program "by hand" and see if
-the files you get back match the expected files. The `aruba-test/etc` folder in the
-repository has three files in it:
+the files you get back match the expected files. The `test/target-files`
+folder in the repository has three files in it:
 
-* `small.txt`
-* `AsYouLikeIt.txt`
-* `binary.jpg`
+- `small.txt`
+- `AsYouLikeIt.txt`
+- `binary.jpg`
 
 If your client is working properly, running it should terminate gracefully,
 leaving three files in the directory you ran it in that match these three
-files exactly. So, for example, if you run your client in `src`, then a
-command like `diff binary.jpg ../aruba-test/etc/binary.jpg` (if run in `src`) should
-return no differences. You should also be able to examine the contents of the
-files you received and assembled and confirm that they look reasonable.
+files exactly. So, for example, if you run your client in `src`, then 
+running a command like this
+
+```bash
+diff binary.jpg ../test/target-files/binary.jpg
+```
+
+(also in `src`) should return no differences. You should also be able to
+examine the contents of the files you received and assembled and confirm that
+they look reasonable.
+
+### Check your work using `bats` tests
+
+There's a (quite simplistic) `bats` test that you can use to run your client
+and check that the files you get match the expected files. Run it from the
+top-level directory, i.e.,
+
+```bash
+bats test/client_tests.bats
+```
+
+If these pass, then your code is probably in good shape from a correctness
+standpoint, but you should still make sure you have reasonable JUnit tests
+and clean, well-organized code.
