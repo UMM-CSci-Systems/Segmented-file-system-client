@@ -94,24 +94,50 @@ As mentioned above, your (Java) program starts things off by sending a UDP/datag
 
 You start things off by sending a (mostly empty) packet to the server as a way of saying "Hello – send me stuff!". To do this you'll need to know the name of the server you're connecting to, and the port to use for the connection; this information should be provided in class.
 
-What should that initial packet look like that you send to the server to start things off? Actually, it can be completely empty, since all you're doing is announcing that you're interested. Everything the server needs to respond to your request is your IP and port number, and all that is encoded in your outgoing package "for free" by Java's `DatagramPacket` class. So just create an empty buffer, stick that in a `DatagramPacket` and send it out on the `DatagramSocket` that you set up between you and the server.
+What should that initial packet look like that you send to the server to start
+things off? Actually, it can be completely empty, since all you're doing is
+announcing that you're interested. The only thing the server needs to respond
+to your request is your IP and port number, and all that is encoded in your
+outgoing package "for free" by Java's `DatagramPacket` class. So just create an
+empty buffer, stick that in a `DatagramPacket` and send it out on the
+`DatagramSocket` that you set up between you and the server.
 
 ### Processing the packets you receive
 
 The main complication when receiving the packets is we don't control the order in which packets will be received. This means, among other things, that:
 
--   The header packet won't necessarily come first, so we might start receiving data for a file before we've gotten the header for it (and know the file name). In an extreme case, we might get *all* the data packets (including the one with the "last packet" bit set) before we get the header packet. (Remember that the "last packet" bit tells us how many packets there should be thanks to the packet number, but it doesn't mean that it's the last packet to arrive.)
--   The data packets can arrive in random order, so we'll have to store them in some fashion until we have them all, and then put them in order before we write them out to the file.
+- The header packet won't necessarily come first, so we might start receiving
+  data for a file before we've gotten the header for it (and know the file
+  name). In an extreme case, we might get *all* the data packets (including the
+  one with the "last packet" bit set) before we get the header packet.
+  (Remember that the "last packet" bit tells us how many packets there should
+  be thanks to the packet number, but it doesn't mean that it's the last packet
+  to arrive.)
+- The data packets can arrive in random order, so we'll have to store them in
+  some fashion until we have them all, and then put them in order before we
+  write them out to the file.
 
 Other issues include:
 
--   Packets will arrive from all three files interleaved, so we need to make sure we can store them sensibly so we can separate out packets for the different files.
--   We don't know how many packets a file has been split up into until we see the packet with the "last packet" bit set.
--   You don't know what kind of file they're sending, so you have to make sure to handle the data as if it's binary data and can't ever convert it to strings.
+- Packets will arrive from all three files interleaved, so we need to make sure
+  we can store them sensibly so we can separate out packets for the different
+  files.
+- We don't know how many packets a file has been split up into until we see the
+  packet with the "last packet" bit set.
+- You don't know what kind of file they're sending, so you have to make sure to
+  handle the data as if it's binary data. You can't _ever_ convert it to strings
+  or you'll break things when you try to handle binary data.
 
 Most of this is really a data structures problem. Before you start banging on the keyboard, take some time to talk about how you're going to unmarshall the packets and store their data. Having a good plan for that will make a huge difference.
 
-As far as actually receiving the packages, you just need to keep calling `socket.receive(packet)` on the `DatagramSocket` you set up until you've got all the packets. You'll probably want to construct a new `DatagramPacket` for every call to `receive` so that you know that the receipt of a new packet won't overwrite the buffer data from the previous packet. Since you know that each packet has no more than 1K of data, the buffer in the packet needs to be big enough for the 1K of data plus the maximum amount of header information as discussed in the packet structure description up above.
+As far as actually receiving the packages, you just need to keep calling
+`socket.receive(packet)` on the `DatagramSocket` you set up until you've got
+all the packets. You'll probably want to construct a new `DatagramPacket` for
+every call to `receive` so that you know that the receipt of a new packet won't
+overwrite the buffer data from the previous packet. Since you know that each
+packet has no more than 1024 bytes of data, the buffer in the packet needs to
+be big enough for the 1024 bytes of data plus the maximum amount of header
+information as discussed in the packet structure description up above.
 
 ## Testing
 
@@ -119,11 +145,44 @@ As far as actually receiving the packages, you just need to keep calling `socket
 
 :bangbang: ***Write tests*** :bangbang:
 
-While the network stuff is difficult to test, all the parsing and packet/file assembly logic is entirely testable. I would *strongly* encourage you to write some tests for that "data structures" part to help define the desired behavior and identify logic issues. Debugging logic problems when you're interacting with the actual server will really be a nuisance, so isolating that part as much as possible would be a Good Idea. You might, for example, have a `DataPacket` class (as distinct from the Java library `DatagramPacket` class) with a constructor that takes an array of bytes. You could then write tests that construct `DataPackets` and you could verify that the resulting `DataPackets` have the correct status bytes, file ID, packet number, and data. You could also have a `PacketManager` class that you hand packets to and which manages organizing and storing all the packets. You could then hand it a small set of test packets that you make up, and verify that it assembles the correct files. The `PacketManager` could, for example, create `ReceivedFile` objects. `RecievedFiles` could contain the packets for a file, and have getter methods for the file name, the number of packets (what if it isn't known yet?), the number actually received, whether the file is complete, and the data from those packets after sorting them in the correct order.
+While the network stuff is difficult to test, all the parsing and packet/file
+assembly logic is entirely testable. I would *strongly* encourage you to write
+some tests for that "data structures" part to help define the desired behavior
+and identify logic issues. Debugging logic problems when you're interacting
+with the actual server will really be a nuisance, so isolating that part as
+much as possible would be a Good Idea. 
 
-All of these ideas are just that: ideas. Your group should definitely spend some time discussing how you want to organize all this, and how you want to test that. If you're not clear on how you'd structure something for testing, *come ask* rather than just banging out a bunch of code that will just confuse us all later.
+You might, for example, have a
+`DataPacket` class (as distinct from the Java library `DatagramPacket` class)
+with a constructor that takes an array of bytes. That class could then be
+responsible for extracting the status bytes, file ID, packet number, and data,
+and store them in fields that are accessible through variout `get`
+methods. You could then write tests
+that construct `DataPackets` and verify that the resulting
+`DataPackets` have the correct status bytes, file ID, packet number, and data.
+
+You could also have a `PacketManager` class that you hand packets to and which
+manages organizing and storing all the packets. You could then hand it a small
+set of test packets that you make up, and verify that it assembles the correct
+files. The `PacketManager` could, for example, create `ReceivedFile` objects.
+`RecievedFiles` could contain the packets for a file, and have getter methods
+for the file name, the number of packets (what if it isn't known yet?), the
+number actually received, whether the file is complete, and the data from those
+packets after sorting them in the correct order.
+
+All of these ideas are just that: ideas. Your group should definitely spend
+some time discussing how you want to organize all this, and how you want to
+test that. If you're not clear on how you'd structure something for testing,
+*come ask* rather than just banging out a bunch of code that will just confuse
+us all later.
 
 **If you've written reasonable unit tests for your data structures and they pass, you'll get partial credit even if the whole client is not correct.**
+
+You don't have to do things like test `DatagramSocket` or file writing. The
+Java folks are responsible for the correctness of `DatagramSocket` and we'll
+trust them on that. Testing that you're writing out the correct files is
+essentially handled in the `bats` tests below, so don't bother trying to do
+JUnit things about that.
 
 ### Check your work by running your client by hand
 
