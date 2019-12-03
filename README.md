@@ -1,9 +1,18 @@
-Segmented-File-Server-client
-============================
+# Segmented-File-Server-client <!-- omit in toc -->
 
 The starter code and (limited) tests for the client code for the Segmented File System lab.
 
-# Background
+- [Background](#background)
+- [Segmenting the files](#segmenting-the-files)
+- [The OutOfMoney.com protocol](#the-outofmoneycom-protocol)
+- [Writing the client backend](#writing-the-client-backend)
+  - [Starting the conversation](#starting-the-conversation)
+  - [Processing the packets you receive](#processing-the-packets-you-receive)
+- [Testing](#testing)
+  - [Unit test your work](#unit-test-your-work)
+  - [Check your work by running your client by hand](#check-your-work-by-running-your-client-by-hand)
+
+## Background
 
 Those wacky folks at OutOfMoney.com are at it again, and have come up with another awesome money making scheme. This time they're setting up a service where users will use a client program to contact a new OutOfMoney.com server (using another old computer they found in the basement at the high school). Every time the client contacts the server, the server will send back three randomly chosen bits of of Justin Bieber arcana. These could be sound files, videos, photos, or text files (things like lyrics). They've got the server up and running, but the kid that had prototyped the client software has moved away suddenly. (His mom works for the CIA and they move a lot, usually with little notice.) Unfortunately he took all the code with him, and isn't responding to any attempts to contact him on Facebook.
 
@@ -13,7 +22,7 @@ In a rare fit of sanity, they've brought you in to help them out by building the
 
 This starter code comes with some simple Aruba/Cucumber tests, but as discussed below you'll almost certainly want to add additional JUnit tests of your own to test the design and implementation of your data management tools.
 
-# Segmenting the files
+## Segmenting the files
 
 They're using socket-based connections between the client and server, but someone who is long since fired decided that it was important that the server break the files up into 1K chunks and send each chunk separately using UDP. Because of various sources of asynchrony such as threads on the server and network delays, you can't be sure you'll receive the chunks in the right order, so you'll need to collect and re-assemble them before writing out the file.
 
@@ -23,9 +32,20 @@ Java provides direct support for UPD/datagram sockets primarily through the `Dat
 
 :bangbang: ***There are security implications of using UDP,*** which is one of many reasons why one would tend to use TCP instead unless you have a good reason to use UDP. If you establish a datagram socket, you're essentially willing to receive packets from anyone sending to the UDP port you're listening on. In this lab, for example, there's nothing to stop someone from throwing stuff at your UDP port at the same time that the server is sending you files there, and there's no simple way to distinguish legitimate packets from bogus (and possibly) malicious packets. In this case (partly because we're using Java) it's hard to do much more than corrupt the files and (if your error checking isn't great) crash the client. In systems where buffer overruns are possible (typically programmed in C), then attacks on UDP ports can in extreme cases lead to gaining root.
 
+:bangbang: **You probably don't want to use wifi for this.** Unlike TCP,
+UDP doesn't promise that packets will arrive, so it's theoretically possible
+that a client won't receive all the packets sent by the server. We don't
+typically see that when using the lab boxes as the capacity of the wired
+Ethernet network isn't particularly stressed by this. If, however, you bring
+in a laptop and run the client there, all the network traffic happens across
+the wireless network and there is a much higher probability that packets will
+be lost. If this happens, there's no way for the client to "fix" the problem
+since the protocol doesn't provide any way to request a re-send for missing
+packets.
+
 :bangbang: Make sure you shut down all your client processes before you leave the lab. If you leave them running you can block ports and make it impossible for other people to work on their lab on that computer.
 
-# The OutOfMoney.com protocol
+## The OutOfMoney.com protocol
 
 Your job is to write a (Java) program that sends a UDP/datagram packet to the server, and then waits and receives packets from the server until all three files are completely received. When a file is complete, it should be written to disk using the file name sent in the header packet. When all three files have been written to disk, the client should terminate cleanly. As mentioned above, since the file will be broken up into chunks and sent using UDP, we need a protocol to tell us how to interpret the pieces we receive so we can correctly assemble them. Those clever clogs at OutOfMoney.com didn't have much experience (ok, any experience) designing these kinds of protocols, so theirs isn't necessarily the greatest, but it gets the job done.
 
@@ -60,17 +80,17 @@ The decision to only use 1 byte for the file ID means that there can't be more t
 
 *Question to think about: Given that we're using 2 bytes for the packet number, and breaking files into 1K chunks, what's the largest file we can transfer using this system?*
 
-# Writing the client backend
+## Writing the client backend
 
 As mentioned above, your (Java) program starts things off by sending a UDP/datagram packet to the server, and then waits and receives packets from the server until all three files are completely received. When a file is complete, it should be written to disk using the file name sent in the header packet. When all three files have been written to disk, the client should terminate cleanly.
 
-## Starting the conversation
+### Starting the conversation
 
 You start things off by sending a (mostly empty) packet to the server as a way of saying "Hello – send me stuff!". To do this you'll need to know the name of the server you're connecting to, and the port to use for the connection; this information should be provided in class.
 
 What should that initial packet look like that you send to the server to start things off? Actually, it can be completely empty, since all you're doing is announcing that you're interested. Everything the server needs to respond to your request is your IP and port number, and all that is encoded in your outgoing package "for free" by Java's `DatagramPacket` class. So just create an empty buffer, stick that in a `DatagramPacket` and send it out on the `DatagramSocket` that you set up between you and the server.
 
-## Processing the packets you receive
+### Processing the packets you receive
 
 The main complication when receiving the packets is we don't control the order in which packets will be received. This means, among other things, that:
 
@@ -87,9 +107,9 @@ Most of this is really a data structures problem. Before you start banging on th
 
 As far as actually receiving the packages, you just need to keep calling `socket.receive(packet)` on the `DatagramSocket` you set up until you've got all the packets. You'll probably want to construct a new `DatagramPacket` for every call to `receive` so that you know that the receipt of a new packet won't overwrite the buffer data from the previous packet. Since you know that each packet has no more than 1K of data, the buffer in the packet needs to be big enough for the 1K of data plus the maximum amount of header information as discussed in the packet structure description up above.
 
-# Testing
+## Testing
 
-## Unit test your work
+### Unit test your work
 
 :bangbang: ***Write tests*** :bangbang:
 
@@ -97,9 +117,9 @@ While the network stuff is difficult to test, all the parsing and packet/file as
 
 All of these ideas are just that: ideas. Your group should definitely spend some time discussing how you want to organize all this, and how you want to test that. If you're not clear on how you'd structure something for testing, *come ask* rather than just banging out a bunch of code that will just confuse us all later.
 
-**If you've written unit tests for your data structures and they pass, you'll get partial credit even if the whole client is not correct**
+**If you've written reasonable unit tests for your data structures and they pass, you'll get partial credit even if the whole client is not correct**
 
-## Check your work by running your client by hand
+### Check your work by running your client by hand
 
 In addition to your unit tests, you can run your program "by hand" and see if
 the files you get back match the expected files. The `aruba-test/etc` folder in the
