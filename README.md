@@ -2,16 +2,16 @@
 
 The starter code and (limited) tests for the client code for the Segmented File System lab.
 
-- [Background](#background)
-- [Segmenting the files](#segmenting-the-files)
-- [The OutOfMoney.com protocol](#the-outofmoneycom-protocol)
-- [Writing the client backend](#writing-the-client-backend)
-  - [Starting the conversation](#starting-the-conversation)
-  - [Processing the packets you receive](#processing-the-packets-you-receive)
-- [Testing](#testing)
-  - [Unit test your work](#unit-test-your-work)
-  - [Check your work by running your client by hand](#check-your-work-by-running-your-client-by-hand)
-  - [Check your work using `bats` tests](#check-your-work-using-bats-tests)
+* [Background](#background)
+* [Segmenting the files](#segmenting-the-files)
+* [The OutOfMoney.com protocol](#the-outofmoneycom-protocol)
+* [Writing the client backend](#writing-the-client-backend)
+  * [Starting the conversation](#starting-the-conversation)
+  * [Processing the packets you receive](#processing-the-packets-you-receive)
+* [Testing](#testing)
+  * [Unit test your work](#unit-test-your-work)
+  * [Check your work by running your client by hand](#check-your-work-by-running-your-client-by-hand)
+  * [Check your work using `bats` tests](#check-your-work-using-bats-tests)
 
 ## Background
 
@@ -52,14 +52,17 @@ Your job is to write a (Java) program that sends a UDP/datagram packet to the se
 
 In this protocol there are essentially two kinds of packets
 
--   A header packet with a unique file ID for the file being transfered, and the actual name of the file so we'll know what to call it after we've assembled the pieces
--   A data packet, with the unique file ID (so we know what file this is part of), the packet number, and the data for that chunk.
+* A header packet with a unique file ID for the file being transfered, and the actual name of the file so we'll know what to call it after we've assembled the pieces
+* A data packet, with the unique file ID (so we know what file this is part of), the packet number, and the data for that chunk.
 
 Each packet starts with a status byte that indicates which type of packet it is:
 
--   If the status byte is even (i.e., the least significant bit is 0), then this is a header packet
--   If the status byte is odd (i.e., the least significant bit is 1), then this is a data packet
--   If the status byte's second bit is also 1 (i.e., it's 3 mod 4), then this is the *last* data packet for this file. They could have included the number of packets in the header packet, but they chose to to mark the last packet instead. Note that the last data packet (in terms of being the last bytes in the file) isn't guaranteed to come last, and might come anywhere in the stream including possibly being the *first* packet to arrive.
+* If the status byte is even (i.e., the least significant bit is 0), then this is a header packet
+* If the status byte is odd (i.e., the least significant bit is 1), then this is a data packet
+* If the status byte's second bit is also 1 (i.e., it's 3 mod 4), then this is the *last* data packet for this file
+  They could have included the number of packets in the header packet, but they chose to to mark the last packet
+  instead. Note that the last data packet (in terms of being the last bytes in the file) isn't guaranteed to come
+  last, and might come anywhere in the stream including possibly being the *first* packet to arrive.
 
 The packet numbers are consecutive and start from 0. So if a file is split into 18 chunks, there will be 18 data packets numbered 0 through 17, as well as the header packet for that file (for a total of 19 packets). The file IDs do *not* start with any particular value or run in any particular order, so you can't assume for example that they'll be 0, 1, and 2.
 
@@ -106,25 +109,25 @@ empty buffer, stick that in a `DatagramPacket` and send it out on the
 
 The main complication when receiving the packets is we don't control the order in which packets will be received. This means, among other things, that:
 
-- The header packet won't necessarily come first, so we might start receiving
+* The header packet won't necessarily come first, so we might start receiving
   data for a file before we've gotten the header for it (and know the file
   name). In an extreme case, we might get *all* the data packets (including the
   one with the "last packet" bit set) before we get the header packet.
   (Remember that the "last packet" bit tells us how many packets there should
   be thanks to the packet number, but it doesn't mean that it's the last packet
   to arrive.)
-- The data packets can arrive in random order, so we'll have to store them in
+* The data packets can arrive in random order, so we'll have to store them in
   some fashion until we have them all, and then put them in order before we
   write them out to the file.
 
 Other issues include:
 
-- Packets will arrive from all three files interleaved, so we need to make sure
+* Packets will arrive from all three files interleaved, so we need to make sure
   we can store them sensibly so we can separate out packets for the different
   files.
-- We don't know how many packets a file has been split up into until we see the
+* We don't know how many packets a file has been split up into until we see the
   packet with the "last packet" bit set.
-- You don't know what kind of file they're sending, so you have to make sure to
+* You don't know what kind of file they're sending, so you have to make sure to
   handle the data as if it's binary data. You can't _ever_ convert it to strings
   or you'll break things when you try to handle binary data.
 
@@ -150,7 +153,7 @@ assembly logic is entirely testable. I would *strongly* encourage you to write
 some tests for that "data structures" part to help define the desired behavior
 and identify logic issues. Debugging logic problems when you're interacting
 with the actual server will really be a nuisance, so isolating that part as
-much as possible would be a Good Idea. 
+much as possible would be a Good Idea.
 
 You might, for example, have a
 `DataPacket` class (as distinct from the Java library `DatagramPacket` class)
@@ -190,13 +193,13 @@ In addition to your unit tests, you can run your program "by hand" and see if
 the files you get back match the expected files. The `test/target-files`
 folder in the repository has three files in it:
 
-- `small.txt`
-- `AsYouLikeIt.txt`
-- `binary.jpg`
+* `small.txt`
+* `AsYouLikeIt.txt`
+* `binary.jpg`
 
 If your client is working properly, running it should terminate gracefully,
 leaving three files in the directory you ran it in that match these three
-files exactly. So, for example, if you run your client in `src`, then 
+files exactly. So, for example, if you run your client in `src`, then
 running a command like this
 
 ```bash
