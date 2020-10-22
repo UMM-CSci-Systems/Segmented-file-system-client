@@ -8,21 +8,27 @@
 # one time.
 setup(){
     if [ "$BATS_TEST_NUMBER" -eq 1 ]; then
-       cd src
+      cd test/lib || exit
+      java -jar Segmented-File-System-server.jar &
+      sleep 1
 
-       # Clean out any previously downloaded files.
-       rm -f small.txt
-       rm -f AsYouLikeIt.txt
-       rm -f binary.jpg
+      cd ../../src || exit
 
-       # (Re)compile the code
-       rm -f segmentedfilesystem/*.class
-       javac segmentedfilesystem/*.java
+      # Clean out any previously downloaded files.
+      rm -f small.txt
+      rm -f AsYouLikeIt.txt
+      rm -f binary.jpg
 
-       # Run the client
-       java segmentedfilesystem.Main csci-4409.morris.umn.edu
+      # (Re)compile the code
+      rm -f segmentedfilesystem/*.class
+      javac segmentedfilesystem/*.java
 
-       cd ..
+      # Run the client
+      java segmentedfilesystem.Main localhost
+
+      cd .. || exit
+
+      kill %1
     fi
 }
 
