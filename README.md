@@ -5,6 +5,8 @@ The starter code and (limited) tests for the client code for the Segmented File 
 * [Background](#background)
 * [Segmenting the files](#segmenting-the-files)
 * [The OutOfMoney.com protocol](#the-outofmoneycom-protocol)
+  * [The packet structure](#the-packet-structure)
+  * [How to construct packet numbers](#how-to-construct-packet-numbers)
 * [Writing the client backend](#writing-the-client-backend)
   * [Starting the conversation](#starting-the-conversation)
   * [Processing the packets you receive](#processing-the-packets-you-receive)
@@ -50,10 +52,15 @@ packets.
 
 Your job is to write a (Java) program that sends a UDP/datagram packet to the server, and then waits and receives packets from the server until all three files are completely received. When a file is complete, it should be written to disk using the file name sent in the header packet. When all three files have been written to disk, the client should terminate cleanly. As mentioned above, since the file will be broken up into chunks and sent using UDP, we need a protocol to tell us how to interpret the pieces we receive so we can correctly assemble them. Those clever clogs at OutOfMoney.com didn't have much experience (ok, any experience) designing these kinds of protocols, so theirs isn't necessarily the greatest, but it gets the job done.
 
-In this protocol there are essentially two kinds of packets
+### The packet structure
 
-* A header packet with a unique file ID for the file being transfered, and the actual name of the file so we'll know what to call it after we've assembled the pieces
-* A data packet, with the unique file ID (so we know what file this is part of), the packet number, and the data for that chunk.
+In this protocol there are essentially two kinds of packets:
+
+* A header packet with a unique file ID for the file being transferred, and
+  the actual name of the file so we'll know what to call it after we've assembled
+  the pieces
+* A data packet, with the unique file ID (so we know what file this is part of),
+  the packet number, and the data for that chunk.
 
 Each packet starts with a status byte that indicates which type of packet it is:
 
@@ -88,6 +95,85 @@ bytes of data).
 The decision to only use 1 byte for the file ID means that there can't be more than 256 files being transferred to a given client at a time. Given that the current business plan is to always send exactly three files that shouldn't be a problem, but they'll need to be aware of the limitation if they want to expand the service later.
 
 *Question to think about: Given that we're using 2 bytes for the packet number, and breaking files into 1K chunks, what's the largest file we can transfer using this system?*
+
+### How to construct packet numbers
+
+A data packet has two bytes that specify the packet number, but how do you take
+those two bytes and make a packet number out of them? It's "fairly"
+straightforward, but there is an annoying complication because Java doesn't
+natively support unsigned integer types.
+
+The "simple" part is to realize that we can treat an individual byte as a
+"digit" in a base 256 number. So in the same way that 37 is a two digit
+decimal number, which we interpret as 3*10 + 7, the pair of bytes:
+
+| most significant byte | least significant byte |
+|:----------------------|:-----------------------|
+| X                     | Y                      |
+
+as 256*X + Y.
+
+There's a question there of whether the most significant byte comes first
+or second; on our protocol, the first byte is the most significant byte as
+above. The question of whether the most significant bytes (or bits) come first
+or last is important; either works, but it crucial that everyone agrees on
+a standard. This is what [arguments about "little endian" and "big endian"
+systems](https://en.wikipedia.org/wiki/Endianness) are all about.
+
+**Now for the complication.** In an unsigned universe, a byte can represent
+values from 0 to 255. That's really what we're after here; packet numbers
+are non-negative, so we'd like to think of X and Y as both non-negative values
+so we can just say the packet number is 256*X + Y.
+
+But we can't.
+
+Because Java doesn't support unsigned values. So _it_ thinks a byte represents
+the values -128 to 127, and if we just take those values and do 256*X + Y we'll
+end up with some messed up values that really won't work.
+
+How do we fix that? First, we're going to _have_ to assign the `byte` value to
+an `int` value so we can represent values larger than 127. So we might have
+something like:
+
+```java
+int x = bytes[2];
+int y = bytes[3];
+```
+
+(`x` and `y` aren't great names, and you might talk about whether there
+are better names.) Now we'll have a value between -128 and 127 that we need
+to convert to the range 0 to 255. All the numbers from 0 to 127 are "OK" and
+can be left alone. The negative values, though, need to be converted to the
+range 128 to 255, with -128 mapping to 128, and -1 mapping to 255. One way to
+deal with that would be:
+
+```java
+if (x < 0) {
+  x += 256
+}
+if (y < 0) {
+  y += 256
+}
+```
+
+*Do you see why adding 256 to negative values fixes thing?*
+
+(The fact that we have to do the same thing to both of these _strongly_ suggests
+that you want a function that converts a `byte` to an unsigned `int` instead of
+repeating the logic.)
+
+There's a faster alternative that doesn't involve conditionals that uses bit
+masking. We're not going to go into that here, but you might want to
+[read about it](https://mkyong.com/java/java-convert-bytes-to-unsigned-bytes)
+and give it a try.
+
+As yet another alternative, starting with Java 8 there's
+a `Byte.toUnsignedInt()` method that does exactly what we want:
+
+```java
+int x = Byte.toUnsignedInt(bytes[2])
+int y = Byte.toUnsignedInt(bytes[3])
+```
 
 ## Writing the client backend
 
