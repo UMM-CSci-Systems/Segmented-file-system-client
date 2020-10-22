@@ -276,25 +276,31 @@ JUnit things about that.
 ### Check your work by running your client by hand
 
 In addition to your unit tests, you can run your program "by hand" and see if
-the files you get back match the expected files. The `test/target-files`
-folder in the repository has three files in it:
+the files you get back match the expected files. There's a script `run_client.sh`
+in `src`; if you go into `src` and if your client is working properly, running
+it should terminate gracefully, leaving three files in the directory you ran
+it in:
 
 * `small.txt`
 * `AsYouLikeIt.txt`
 * `binary.jpg`
 
-If your client is working properly, running it should terminate gracefully,
-leaving three files in the directory you ran it in that match these three
-files exactly. So, for example, if you run your client in `src`, then
-running a command like this
+The `test/target-files` folder in the repository contains three files with
+the same names – these are copies of the expected files and the files your
+program downloaded should match these three files exactly.
+So, for example, (assuming you're still in `src`), running a command like this
 
 ```bash
 diff binary.jpg ../test/target-files/binary.jpg
 ```
 
-(also in `src`) should return no differences. You should also be able to
-examine the contents of the files you received and assembled and confirm that
-they look reasonable.
+should return no differences. You should also be able to examine the contents
+of the files you received and assembled and confirm that they look reasonable.
+
+A common problem is that you didn't write the last few bytes of data to the
+file. This might show up as the long text file missing the last few characters
+or lines. In `binary.jpg` this might show up as some black pixels in the bottom
+right of the image.
 
 ### Check your work using `bats` tests
 
@@ -305,6 +311,9 @@ top-level directory, i.e.,
 ```bash
 bats test/client_tests.bats
 ```
+
+It basically does the "hand test" described above, and `diff`s the files you
+downloaded against the three expected files.
 
 If these pass, then your code is probably in good shape from a correctness
 standpoint, but you should still make sure you have reasonable JUnit tests
