@@ -33,7 +33,7 @@ Java provides direct support for UPD/datagram sockets primarily through the `Dat
 
 :bangbang: ***There are security implications of using UDP,*** which is one of many reasons why one would tend to use TCP instead unless you have a good reason to use UDP. If you establish a datagram socket, you're essentially willing to receive packets from anyone sending to the UDP port you're listening on. In this lab, for example, there's nothing to stop someone from throwing stuff at your UDP port at the same time that the server is sending you files there, and there's no simple way to distinguish legitimate packets from bogus (and possibly) malicious packets. In this case (partly because we're using Java) it's hard to do much more than corrupt the files and (if your error checking isn't great) crash the client. In systems where buffer overruns are possible (typically programmed in C), then attacks on UDP ports can in extreme cases lead to gaining root.
 
-:bangbang: **You probably don't want to use wifi for this.** Unlike TCP,
+:bangbang: **You probably don't want to use WiFi for this.** Unlike TCP,
 UDP doesn't promise that packets will arrive, so it's theoretically possible
 that a client won't receive all the packets sent by the server. We don't
 typically see that when using the lab boxes as the capacity of the wired
@@ -159,7 +159,7 @@ You might, for example, have a
 `DataPacket` class (as distinct from the Java library `DatagramPacket` class)
 with a constructor that takes an array of bytes. That class could then be
 responsible for extracting the status bytes, file ID, packet number, and data,
-and store them in fields that are accessible through variout `get`
+and store them in fields that are accessible through various `get`
 methods. You could then write tests
 that construct `DataPackets` and verify that the resulting
 `DataPackets` have the correct status bytes, file ID, packet number, and data.
@@ -168,7 +168,7 @@ You could also have a `PacketManager` class that you hand packets to and which
 manages organizing and storing all the packets. You could then hand it a small
 set of test packets that you make up, and verify that it assembles the correct
 files. The `PacketManager` could, for example, create `ReceivedFile` objects.
-`RecievedFiles` could contain the packets for a file, and have getter methods
+`ReceivedFiles` could contain the packets for a file, and have getter methods
 for the file name, the number of packets (what if it isn't known yet?), the
 number actually received, whether the file is complete, and the data from those
 packets after sorting them in the correct order.
