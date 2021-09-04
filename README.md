@@ -265,8 +265,6 @@ test that. If you're not clear on how you'd structure something for testing,
 *come ask* rather than just banging out a bunch of code that will just confuse
 us all later.
 
-**If you've written reasonable unit tests for your data structures and they pass, you'll get partial credit even if the whole client is not correct.**
-
 You don't have to do things like test `DatagramSocket` or file writing. The
 Java folks are responsible for the correctness of `DatagramSocket` and we'll
 trust them on that. Testing that you're writing out the correct files is
